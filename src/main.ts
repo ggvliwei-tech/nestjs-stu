@@ -11,6 +11,9 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const configService = app.get(ConfigService);
 
+    // ========== 设置全局接口前缀 /api/v1 ==========
+    app.setGlobalPrefix('api/v1');
+
   // 1. 全局跨域
   app.enableCors();
 
@@ -43,8 +46,9 @@ async function bootstrap() {
   const port = configService.get<number>('APP_PORT') || 3000;
   await app.listen(port);
 
-  console.log(`服务启动成功：http://localhost:${port}`);
-  console.log(`接口文档地址：http://localhost:${port}/api-docs`);
+    console.log(`服务启动：http://localhost:${port}`);
+    console.log(`接口基础地址：http://localhost:${port}/api/v1`);
+    console.log(`文档地址：http://localhost:${port}/api-docs`);
 }
 
 bootstrap();
