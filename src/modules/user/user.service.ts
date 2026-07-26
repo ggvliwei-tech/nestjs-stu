@@ -127,16 +127,16 @@ export class UserService {
       expiresIn: this.getJwtExpiresIn('JWT_ACCESS_EXPIRES_IN'),
     });
 
-/*    // 可选：刷新时轮换RefreshToken（更安全）
+    // 可选：刷新时轮换RefreshToken（更安全）
     const newRefreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.getOrThrow<string>('JWT\_REFRESH\_SECRET'),
-      expiresIn: this.configService.getOrThrow<string>('JWT\_REFRESH\_EXPIRES\_IN'),
+      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn:this.getJwtExpiresIn('JWT_REFRESH_EXPIRES_IN'),
     });
     user.refreshToken = newRefreshToken;
     await this.userRepo.save(user);
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };*/
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
 
-    return { accessToken: newAccessToken };
+    // return { accessToken: newAccessToken };
   }
 
   // 退出登录：清空数据库refreshToken，直接失效
