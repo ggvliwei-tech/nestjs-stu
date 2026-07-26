@@ -14,6 +14,7 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // 全局响应转换拦截器，统一成功响应格式
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import cookieParser from 'cookie-parser';
 
 // 应用启动入口函数
 async function bootstrap() {
@@ -22,11 +23,16 @@ async function bootstrap() {
   // 从应用容器中获取 ConfigService 实例
   const configService = app.get(ConfigService);
 
+  app.use(cookieParser())
+
   // 设置全局接口前缀，所有路由自动加上 /api/v1
   app.setGlobalPrefix('api/v1');
 
   // 开启全局 CORS 跨域支持，允许前端跨域访问
-  app.enableCors();
+  app.enableCors({
+    origin:true,
+    credentials:true// 允许跨域携带Cookie
+  });
 
   // 注册全局参数校验管道，自动验证 DTO 并过滤多余字段
   app.useGlobalPipes(
