@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm'; // 注入 Repository 的装饰器
 import { Repository } from 'typeorm'; // TypeORM 仓储接口，用于数据库操作
+import { QueryFailedError } from 'typeorm'; // TypeORM 查询失败异常，用于捕获数据库约束冲突
 import { JwtService } from '@nestjs/jwt'; // JWT 服务，用于签发 Token
 import * as bcrypt from 'bcrypt'; // bcrypt 加密库，用于密码哈希和比对
 import { User } from './entities/user.entity'; // 用户实体类
@@ -24,12 +25,14 @@ export class UserService {
   ) {}
 
   // 注册用户：对密码进行 bcrypt 哈希后存入数据库
+  // 先查询已存在用户名可快速返回提示，数据库唯一约束兜底防并发
   async create(createUserDto: CreateUserDto) {
-    const existingUser=await this.userRepo.findOne({
-      where:{username:createUserDto.username}
+    // 先查询用户名是否已存在，存在则快速返回冲突提示
+    const existingUser = await this.userRepo.findOne({
+      where: { username: createUserDto.username },
     });
-    if(existingUser){
-      throw new ConflictException('用户名已注册')
+    if (existingUser) {
+      throw new ConflictException('用户名已注册');
     }
 
     // 使用 bcrypt 对密码进行哈希加密，saltRounds=10
@@ -39,8 +42,16 @@ export class UserService {
       ...createUserDto, // 展开 DTO 数据（包含 username 等）
       password: hashPwd, // 使用加密后的密码
     });
-    // 将用户实体保存到数据库
-    return await this.userRepo.save(user);
+    // 将用户实体保存到数据库，若并发请求导致唯一约束冲突，由数据库层面拦截
+    try {
+      return await this.userRepo.save(user);
+    } catch (error) {
+      // 捕获数据库唯一约束冲突（MySQL errno 1062 表示唯一键冲突）
+      if (error instanceof QueryFailedError && (error as any).driverError?.errno === 1062) {
+        throw new ConflictException('用户名已注册');
+      }
+      throw error;
+    }
   }
 
   // 用户登录：验证用户名和密码，通过后签发 JWT Token
