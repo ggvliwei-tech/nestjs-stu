@@ -1,11 +1,12 @@
 import {
   Entity, // 实体装饰器，将类映射到数据库表
   Column, // 列装饰器，将属性映射到数据库字段
-  PrimaryGeneratedColumn, // 主键装饰器，定义自增主键
+  PrimaryGeneratedColumn, Unique, // 主键装饰器，定义自增主键
 } from 'typeorm';
 
 // 声明此类为 TypeORM 实体，对应数据库表名为 sys_user
 @Entity('sys_user')
+@Unique(['username'])
 export class User {
   // 主键字段，使用自增策略（由数据库自动生成，无需初始化）
   @PrimaryGeneratedColumn()

@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable, // 依赖注入装饰器
   UnauthorizedException, // 未授权异常
 } from '@nestjs/common';
@@ -24,6 +25,13 @@ export class UserService {
 
   // 注册用户：对密码进行 bcrypt 哈希后存入数据库
   async create(createUserDto: CreateUserDto) {
+    const existingUser=await this.userRepo.findOne({
+      where:{username:createUserDto.username}
+    });
+    if(existingUser){
+      throw new ConflictException('用户名已注册')
+    }
+
     // 使用 bcrypt 对密码进行哈希加密，saltRounds=10
     const hashPwd = await bcrypt.hash(createUserDto.password, 10);
     // 创建用户实体实例，将加密后的密码替换原始密码
