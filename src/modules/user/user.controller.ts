@@ -20,6 +20,7 @@ import { LoginUserDto } from './dto/login-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 // 当前用户装饰器，用于获取 JWT 解析后的用户信息
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RefreshTokenGuard } from '../../common/guards/refresh-token.guard';
 
 // Swagger 标签，将此控制器下的接口归类到 "用户管理模块"
 @ApiTags('用户管理模块')
@@ -46,6 +47,23 @@ export class UserController {
   login(@Body() loginDto: LoginUserDto) {
     return this.userService.login(loginDto);
   }
+
+  @ApiOperation({ summary: '刷新AccessToken（携带RefreshToken）' })
+  @ApiBearerAuth()
+  @UseGuards(RefreshTokenGuard)
+  @Post('refresh-token')
+  refresh(@CurrentUser() user) {
+    return this.userService.refreshToken(user.id);
+  }
+
+  @ApiOperation({ summary: '退出登录，销毁RefreshToken' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout(@CurrentUser() user) {
+    return this.userService.logout(user.id);
+  }
+
 
   // ===== 以下为需要 JWT 鉴权的接口 =====
 

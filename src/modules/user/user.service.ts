@@ -6,11 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'; // 注入 Repository 的装饰器
 import { Repository } from 'typeorm'; // TypeORM 仓储接口，用于数据库操作
 import { QueryFailedError } from 'typeorm'; // TypeORM 查询失败异常，用于捕获数据库约束冲突
-import { JwtService } from '@nestjs/jwt'; // JWT 服务，用于签发 Token
+import { JwtService, JwtSignOptions } from '@nestjs/jwt'; // JWT 服务，用于签发 Token
 import * as bcrypt from 'bcrypt'; // bcrypt 加密库，用于密码哈希和比对
 import { User } from './entities/user.entity'; // 用户实体类
 import { CreateUserDto } from './dto/create-user.dto'; // 注册用户 DTO
-import { LoginUserDto } from './dto/login-user.dto'; // 登录用户 DTO
+import { LoginUserDto } from './dto/login-user.dto';
+import { ConfigService } from '@nestjs/config'; // 登录用户 DTO
 
 // 标记为可注入的服务
 @Injectable()
@@ -22,7 +23,13 @@ export class UserService {
     private readonly userRepo: Repository<User>,
     // 注入 JWT 服务，用于 Token 签发
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
+
+  // 从配置中获取 JWT 过期时间，解决 string 到 StringValue 的类型兼容问题
+  private getJwtExpiresIn(key: string): JwtSignOptions['expiresIn'] {
+    return this.configService.getOrThrow<string>(key) as JwtSignOptions['expiresIn'];
+  }
 
   // 注册用户：对密码进行 bcrypt 哈希后存入数据库
   // 先查询已存在用户名可快速返回提示，数据库唯一约束兜底防并发
@@ -80,17 +87,65 @@ export class UserService {
     // 第四步：签发 JWT Token
     // payload 中包含用户 ID（sub）和用户名，Token 过期时间在配置中设置
     const payload = { sub: user.id, username: user.username };
-    const token = this.jwtService.sign(payload);
+    // const token = this.jwtService.sign(payload);
 
+
+    // 1. 签发 AccessToken（短时效）
+    const accessToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      expiresIn: this.getJwtExpiresIn('JWT_ACCESS_EXPIRES_IN'),
+    });
+
+    // 2. 签发 RefreshToken（长时效）
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
+      expiresIn: this.getJwtExpiresIn('JWT_REFRESH_EXPIRES_IN'),
+    });
+// 存入数据库，绑定当前用户
+    user.refreshToken = refreshToken;
+    await this.userRepo.save(user);
     // 返回 Token 和用户基本信息
     return {
-      token, // JWT 访问令牌
+      accessToken,
+      refreshToken,
       userInfo: {
         id: user.id,
         username: user.username,
         status: user.status,
       },
     };
+  }
+
+  // 刷新AccessToken接口
+  async refreshToken(userId: number) {
+    const user = await this.userRepo.findOneBy({ id: userId });
+    if (!user) throw new UnauthorizedException('用户不存在');
+
+    const payload = { sub: user.id, username: user.username };
+    const newAccessToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
+      expiresIn: this.getJwtExpiresIn('JWT_ACCESS_EXPIRES_IN'),
+    });
+
+/*    // 可选：刷新时轮换RefreshToken（更安全）
+    const newRefreshToken = this.jwtService.sign(payload, {
+      secret: this.configService.getOrThrow<string>('JWT\_REFRESH\_SECRET'),
+      expiresIn: this.configService.getOrThrow<string>('JWT\_REFRESH\_EXPIRES\_IN'),
+    });
+    user.refreshToken = newRefreshToken;
+    await this.userRepo.save(user);
+    return { accessToken: newAccessToken, refreshToken: newRefreshToken };*/
+
+    return { accessToken: newAccessToken };
+  }
+
+  // 退出登录：清空数据库refreshToken，直接失效
+  async logout(userId: number) {
+    const user = await this.userRepo.findOneBy({ id: userId });
+    if (!user) throw new UnauthorizedException('用户不存在');
+    user.refreshToken = null;
+    await this.userRepo.save(user);
+    return { msg: '退出登录成功' };
   }
 
   // 查询所有用户列表

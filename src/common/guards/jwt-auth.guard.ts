@@ -44,7 +44,7 @@ export class JwtAuthGuard implements CanActivate {
     try {
       // 第三步：使用 JWT 密钥验证并解码 Token
       const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_SECRET'),
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET'),
       });
 
       // 第四步：从 Token 载荷中获取用户 ID（payload.sub），查询数据库验证用户是否存在

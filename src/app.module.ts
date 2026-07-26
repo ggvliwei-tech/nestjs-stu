@@ -5,7 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 // TypeORM 数据库模块，用于连接和操作数据库
 import { TypeOrmModule } from '@nestjs/typeorm';
 // JWT 模块，用于 Token 的签发和验证
-import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions, JwtSignOptions } from '@nestjs/jwt';
 // 自定义配置加载函数
 import configuration from './config/configuration';
 // 用户功能模块
@@ -26,11 +26,11 @@ import { UserModule } from './modules/user/user.module';
       // useFactory 工厂函数，接收注入的依赖返回 JWT 配置
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
         // JWT 签名密钥，用于加密和解密 Token
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        secret: configService.getOrThrow<string>('JWT_ACCESS_SECRET'),
         // Token 签名选项
         signOptions: {
           // Token 过期时间，通过类型断言绕过 StringValue 类型限制
-          expiresIn: configService.getOrThrow<string>('JWT_EXPIRES_IN') as unknown as number,
+          expiresIn: configService.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN') as JwtSignOptions['expiresIn'],
         },
       }),
       inject: [ConfigService], // 注入 ConfigService 供 useFactory 使用

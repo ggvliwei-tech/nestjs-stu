@@ -25,7 +25,10 @@ export default () => ({
 
   // JWT 相关配置
   // JWT 签名密钥（必填），用于 Token 的加密和解密
-  JWT_SECRET: getEnv('JWT_SECRET'),
-  // JWT Token 过期时间，默认 7 天，可选通过环境变量覆盖
-  JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  // JWT 双Token
+  JWT_ACCESS_SECRET: getEnv('JWT_ACCESS_SECRET'),
+  JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '30m',
+  JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET'),
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
 });
+
