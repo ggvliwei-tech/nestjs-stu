@@ -36,3 +36,14 @@ CREATE TABLE `typeorm_migrations` (
   `name` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='TypeORM迁移版本记录表';
+
+
+USE nest_db;
+-- 给account_book增加所属用户ID，关联sys_user.id
+ALTER TABLE `account_book` ADD COLUMN `user_id` INT UNSIGNED NOT NULL COMMENT '创建人用户ID';
+
+-- 外键约束（可选，保证数据完整性，不需要可删掉）
+ALTER TABLE `account_book`
+ADD CONSTRAINT `fk_account_book_user`
+FOREIGN KEY (`user_id`) REFERENCES `sys_user`(`id`)
+ON DELETE CASCADE; -- 用户删除，账本级联删除
