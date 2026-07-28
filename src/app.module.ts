@@ -11,6 +11,7 @@ import configuration from './config/configuration';
 // 用户功能模块
 import { UserModule } from './modules/user/user.module';
 import { AccountBookModule } from './modules/account_book/account-book.module';
+import { FileModule } from './modules/file/file.module';
 
 // 根模块，负责组装所有全局依赖
 @Module({
@@ -58,7 +59,8 @@ import { AccountBookModule } from './modules/account_book/account-book.module';
 
     // 导入用户模块，注册用户相关的控制器和服务
     UserModule,
-    AccountBookModule
+    AccountBookModule,
+    FileModule
   ],
 })
 export class AppModule {}

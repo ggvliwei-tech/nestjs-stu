@@ -15,6 +15,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // 全局响应转换拦截器，统一成功响应格式
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import cookieParser from 'cookie-parser';
+import { join } from 'path';
+import * as fs from 'fs';
+
 
 // 应用启动入口函数
 async function bootstrap() {
@@ -24,6 +27,20 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.use(cookieParser())
+
+
+  // 全局上传配置
+  const uploadPath = join(__dirname, '../uploads');
+
+  // 文件夹不存在自动创建
+  if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+  }
+
+  // 静态资源访问：可以通过 http://域名/api/v1/uploads/xxx 访问图片
+  app.useStaticAssets(uploadPath, {
+    prefix: '/api/v1/uploads',
+  });
 
   // 设置全局接口前缀，所有路由自动加上 /api/v1
   app.setGlobalPrefix('api/v1');
