@@ -11,9 +11,9 @@ import {
   UploadedFile,                                   // 单文件上传参数装饰器
   UploadedFiles,                                  // 多文件上传参数装饰器
   MaxFileSizeValidator,                           // 文件大小验证器
-  FileTypeValidator,                              // 文件类型验证器
   ParseFilePipe, UseGuards,                       // 文件解析管道 / 守卫装饰器
 } from '@nestjs/common';
+import { MimeTypeValidator } from '../../common/validators/mime-type.validator';  // 自定义 mimetype 验证器
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';  // 单/多文件拦截器（基于 multer）
 import { diskStorage } from 'multer';             // multer 磁盘存储引擎
 import { extname } from 'path';                   // 获取文件扩展名
@@ -74,7 +74,7 @@ export class FileController {
           // 最大5MB
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),  // 验证文件大小不超过 5MB
           // 只允许图片，如需放开删除此条
-          new FileTypeValidator({ fileType: /(jpg|jpeg|png|gif|webp)$/ }),  // 验证文件为图片格式
+          new MimeTypeValidator({ fileType: /^image\/(jpeg|png|gif|webp)$/ }), // 验证 mimetype 为图片格式
         ],
       }),
     )
