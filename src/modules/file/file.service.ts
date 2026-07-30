@@ -104,6 +104,6 @@ export class FileService {
     // 本地模式：拼接应用基础 URL 和本地静态资源路径
     const baseUrl =
       this.configService.get<string>('APP_BASE_URL') || 'http://localhost:3000';
-    return `${baseUrl}/api/v1/uploads/${filename}`;
+    return `${baseUrl}/api/v1/${filename}`;
   }
 }

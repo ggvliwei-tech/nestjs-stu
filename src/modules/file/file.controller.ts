@@ -18,7 +18,7 @@ import {
 import { MimeTypeValidator } from '../../common/validators/mime-type.validator';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { mkdirSync, writeFileSync } from 'fs';
 import {
@@ -46,13 +46,18 @@ function getDateDir(): string {
 
 /**
  * 将文件缓冲写入本地磁盘
+ * @returns { path: 文件相对路径, filename: 纯文件名 }
  */
-function saveToLocal(buffer: Buffer, filename: string): string {
+function saveToLocal(
+  buffer: Buffer,
+  filename: string,
+): { path: string; filename: string } {
   const dir = getDateDir();
   mkdirSync(dir, { recursive: true });
-  const filePath = join(dir, filename);
-  writeFileSync(filePath, buffer);
-  return filename;
+  // Windows 下 join 会返回 \，URL 需要 /，统一使用正斜杠拼接
+  const relativePath = `${dir}/${filename}`;
+  writeFileSync(relativePath, buffer);
+  return { path: relativePath, filename };
 }
 
 @ApiTags('文件上传模块')
@@ -99,20 +104,22 @@ export class FileController {
     const ext = extname(file.originalname);
     const filename = `${uuidv4()}${ext}`;
 
-    let objectKey: string;
+    let urlPath: string;
+    let storedFilename: string;
 
     if (this.fileService.isOssEnabled()) {
-      // 上传到 OSS
-      objectKey = await this.fileService.uploadToOss(file.buffer, filename);
+      urlPath = await this.fileService.uploadToOss(file.buffer, filename);
+      storedFilename = urlPath;
     } else {
-      // 未配置 OSS，降级到本地磁盘
-      objectKey = saveToLocal(file.buffer, filename);
+      const local = saveToLocal(file.buffer, filename);
+      urlPath = local.path;
+      storedFilename = local.filename;
     }
 
     return {
-      url: this.fileService.getFileUrl(objectKey),
+      url: this.fileService.getFileUrl(urlPath),
       originalname: file.originalname,
-      filename: objectKey,
+      filename: storedFilename,
       size: file.size,
       mimetype: file.mimetype,
     };
@@ -150,18 +157,22 @@ export class FileController {
       const ext = extname(file.originalname);
       const filename = `${uuidv4()}${ext}`;
 
-      let objectKey: string;
+      let urlPath: string;
+      let storedFilename: string;
 
       if (this.fileService.isOssEnabled()) {
-        objectKey = await this.fileService.uploadToOss(file.buffer, filename);
+        urlPath = await this.fileService.uploadToOss(file.buffer, filename);
+        storedFilename = urlPath;
       } else {
-        objectKey = saveToLocal(file.buffer, filename);
+        const local = saveToLocal(file.buffer, filename);
+        urlPath = local.path;
+        storedFilename = local.filename;
       }
 
       results.push({
-        url: this.fileService.getFileUrl(objectKey),
+        url: this.fileService.getFileUrl(urlPath),
         originalname: file.originalname,
-        filename: objectKey,
+        filename: storedFilename,
         size: file.size,
         mimetype: file.mimetype,
       });
