@@ -30,5 +30,12 @@ export default () => ({
   JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '30m',
   JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET'),
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+
+  // 阿里云 OSS 配置（选填，未配置时降级为本地存储）
+  OSS_REGION: process.env.OSS_REGION || '',
+  OSS_ACCESS_KEY_ID: process.env.OSS_ACCESS_KEY_ID || '',
+  OSS_ACCESS_KEY_SECRET: process.env.OSS_ACCESS_KEY_SECRET || '',
+  OSS_BUCKET: process.env.OSS_BUCKET || '',
+  OSS_BASE_URL: process.env.OSS_BASE_URL || '',
 });
 
