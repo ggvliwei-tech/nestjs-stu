@@ -12,6 +12,7 @@ import configuration from './config/configuration';
 import { UserModule } from './modules/user/user.module';
 import { AccountBookModule } from './modules/account_book/account-book.module';
 import { FileModule } from './modules/file/file.module';
+import { AiModule } from './modules/ai/ai.moduls';
 
 // 根模块，负责组装所有全局依赖
 @Module({
@@ -60,7 +61,8 @@ import { FileModule } from './modules/file/file.module';
     // 导入用户模块，注册用户相关的控制器和服务
     UserModule,
     AccountBookModule,
-    FileModule
+    FileModule,
+    AiModule,
   ],
 })
 export class AppModule {}
