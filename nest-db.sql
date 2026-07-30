@@ -47,3 +47,21 @@ ALTER TABLE `account_book`
 ADD CONSTRAINT `fk_account_book_user`
 FOREIGN KEY (`user_id`) REFERENCES `sys_user`(`id`)
 ON DELETE CASCADE; -- 用户删除，账本级联删除
+
+
+CREATE TABLE `sys_file` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `original_name` VARCHAR(255) NOT NULL COMMENT '原始文件名',
+  `save_name` VARCHAR(255) NOT NULL COMMENT '服务器存储文件名',
+  `file_path` VARCHAR(500) NOT NULL COMMENT '文件相对存储路径/OSS Key',
+  `url` VARCHAR(500) NOT NULL COMMENT '可访问完整URL地址',
+  `mime_type` VARCHAR(100) NOT NULL COMMENT '文件MIME类型，如image/png',
+  `size` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '文件大小(字节)',
+  `storage_type` VARCHAR(20) NOT NULL DEFAULT 'local' COMMENT '存储类型：local本地/oss阿里云OSS',
+  `module` VARCHAR(50) DEFAULT NULL COMMENT '归属模块：avatar头像、goods商品图、contract合同附件等',
+  `upload_user_id` INT UNSIGNED DEFAULT NULL COMMENT '上传人用户ID',
+  `create_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '上传时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_module` (`module`),
+  KEY `idx_upload_user_id` (`upload_user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件上传记录表';

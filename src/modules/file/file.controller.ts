@@ -1,183 +1,66 @@
-/**
- * 文件上传控制器
- *
- * 提供单文件和多文件上传功能，支持图片格式校验和大小限制
- * 文件上传至阿里云 OSS（未配置时降级为本地存储）
- * 所有接口使用轻量 JWT 认证，仅验证 Token 签名，不查询数据库
- */
 import {
   Controller,
   Post,
+  Delete,
   UseInterceptors,
-  UploadedFile,
   UploadedFiles,
-  MaxFileSizeValidator,
-  ParseFilePipe,
-  UseGuards,
+  Param, UploadedFile,
 } from '@nestjs/common';
-import { MimeTypeValidator } from '../../common/validators/mime-type.validator';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
-import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { mkdirSync, writeFileSync } from 'fs';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiBearerAuth,
-  ApiConsumes,
-  ApiBody,
-} from '@nestjs/swagger';
 import { FileService } from './file.service';
-import { UploadResDto } from './dto/file.dto';
-import { JwtAuthSimpleGuard } from '../../common/guards/jwt-auth-simple.guard';
 
-/**
- * 根据当前日期生成文件存储目录（仅本地存储模式使用）
- * 格式: uploads/YYYY-MM-DD
- */
-function getDateDir(): string {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `uploads/${yyyy}-${mm}-${dd}`;
-}
-
-/**
- * 将文件缓冲写入本地磁盘
- * @returns { path: 文件相对路径, filename: 纯文件名 }
- */
-function saveToLocal(
-  buffer: Buffer,
-  filename: string,
-): { path: string; filename: string } {
-  const dir = getDateDir();
-  mkdirSync(dir, { recursive: true });
-  // Windows 下 join 会返回 \，URL 需要 /，统一使用正斜杠拼接
-  const relativePath = `${dir}/${filename}`;
-  writeFileSync(relativePath, buffer);
-  return { path: relativePath, filename };
-}
-
-@ApiTags('文件上传模块')
-@ApiBearerAuth()
-@UseGuards(JwtAuthSimpleGuard)
 @Controller('file')
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 
-  /**
-   * 单文件上传接口
-   * 使用 UUID 重命名文件避免文件名冲突
-   */
-  @Post('upload')
-  @ApiOperation({ summary: '单文件上传' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        file: {
-          type: 'string',
-          format: 'binary',
-        },
-      },
-    },
-  })
+  // 单文件（原有）
+  @Post('image')
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-    }),
+    FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
-  async uploadFile(
-    @UploadedFile(
-      new ParseFilePipe({
-        validators: [
-          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new MimeTypeValidator({ fileType: /^image\/(jpeg|png|gif|webp)$/ }),
-        ],
-      }),
-    )
-    file: Express.Multer.File,
-  ): Promise<UploadResDto> {
-    const ext = extname(file.originalname);
-    const filename = `${uuidv4()}${ext}`;
-
-    let urlPath: string;
-    let storedFilename: string;
-
-    if (this.fileService.isOssEnabled()) {
-      urlPath = await this.fileService.uploadToOss(file.buffer, filename);
-      storedFilename = urlPath;
-    } else {
-      const local = saveToLocal(file.buffer, filename);
-      urlPath = local.path;
-      storedFilename = local.filename;
-    }
-
+  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+    const res = await this.fileService.uploadSingle(file, 'goods');
     return {
-      url: this.fileService.getFileUrl(urlPath),
-      originalname: file.originalname,
-      filename: storedFilename,
-      size: file.size,
-      mimetype: file.mimetype,
+      code: 200,
+      data: res.url,
+      info: res,
     };
   }
 
-  /**
-   * 多文件批量上传接口（最多 10 个文件）
-   * 使用 UUID 重命名文件避免文件名冲突
-   */
-  @Post('uploads')
-  @ApiOperation({ summary: '多文件批量上传（最多10个）' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        files: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
+  // ========== 多文件上传 ==========
+  @Post('images')
+  @UseInterceptors(
+    FilesInterceptor(
+      'files', // 前端 formData key 必须为 files
+      10, // 最大一次上传数量
+      {
+        limits: {
+          fileSize: 5 * 1024 * 1024, // 单文件5MB
         },
       },
-    },
-  })
-  @UseInterceptors(
-    FilesInterceptor('files', 10, {
-      storage: memoryStorage(),
-    }),
+    ),
   )
-  async uploadFiles(
-    @UploadedFiles() files: Express.Multer.File[],
-  ): Promise<UploadResDto[]> {
-    const results: UploadResDto[] = [];
-
-    for (const file of files) {
-      const ext = extname(file.originalname);
-      const filename = `${uuidv4()}${ext}`;
-
-      let urlPath: string;
-      let storedFilename: string;
-
-      if (this.fileService.isOssEnabled()) {
-        urlPath = await this.fileService.uploadToOss(file.buffer, filename);
-        storedFilename = urlPath;
-      } else {
-        const local = saveToLocal(file.buffer, filename);
-        urlPath = local.path;
-        storedFilename = local.filename;
-      }
-
-      results.push({
-        url: this.fileService.getFileUrl(urlPath),
-        originalname: file.originalname,
-        filename: storedFilename,
-        size: file.size,
-        mimetype: file.mimetype,
-      });
+  async uploadImages(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files || files.length === 0) {
+      return { code: 400, msg: '未选择上传文件' };
     }
 
-    return results;
+    // 循环调用单文件上传逻辑
+    const list = await Promise.all(
+      files.map((file) => this.fileService.uploadSingle(file, 'goods')),
+    );
+
+    return {
+      code: 200,
+      data: list.map((item) => item.url),
+      list: list,
+    };
+  }
+
+  // 删除
+  @Delete(':id')
+  async remove(@Param('id') id: string) {
+    await this.fileService.deleteFile(+id);
+    return { code: 200, msg: '删除成功' };
   }
 }
