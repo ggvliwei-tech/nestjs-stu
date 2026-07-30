@@ -61,6 +61,7 @@ export class AiService {
         baseUrl: this.configService.get('OLLAMA_BASE_URL'),
         model: this.configService.get('OLLAMA_MODEL'),
         temperature: 0.6,
+        numCtx: 2048, // 减少上下文长度以降低内存占用
       });
     }
   }
