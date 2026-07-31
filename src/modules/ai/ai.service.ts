@@ -13,7 +13,7 @@ import { ChromaClient } from 'chromadb';
 @Injectable()
 export class AiService {
   private readonly llm: ChatOpenAI | ChatOllama;
-  private readonly embeddings: OpenAIEmbeddings;
+  private embeddings: OpenAIEmbeddings;
   private readonly redisClient: Redis;
   private readonly llmType: string;
 
@@ -54,6 +54,19 @@ export class AiService {
       this.embeddings = new OpenAIEmbeddings({
         openAIApiKey: this.configService.get('OPENAI_API_KEY'),
         configuration: { baseURL: this.configService.get('OPENAI_BASE_URL') },
+      });
+    } else if (this.llmType === LlmTypeEnum.DASHSCOPE) {
+      // 阿里云 DashScope 通义千问（OpenAI兼容格式）
+      this.llm = new ChatOpenAI({
+        apiKey: this.configService.get('DASHSCOPE_API_KEY'),
+        configuration: { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+        model: this.configService.get('DASHSCOPE_MODEL') || 'qwen-plus',
+        temperature: 0.6,
+      });
+      // DashScope 也支持 embeddings，使用相同的 API key
+      this.embeddings = new OpenAIEmbeddings({
+        openAIApiKey: this.configService.get('DASHSCOPE_API_KEY'),
+        configuration: { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
       });
     } else {
       // Ollama本地模型
