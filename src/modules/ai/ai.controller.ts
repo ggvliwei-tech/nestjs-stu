@@ -3,6 +3,7 @@ import { Observable, from, map } from 'rxjs';
 import { AiService } from './ai.service';
 import { ChatDto } from './dto/chat.dto';
 import { isBaseMessage } from '@langchain/core/messages';
+import { randomUUID } from 'crypto';
 
 @Controller('ai')
 export class AiController {
@@ -18,9 +19,10 @@ export class AiController {
   // 2. 带会话历史多轮对话
   @Post('chat/history')
   async chatHistory(@Body() dto: ChatDto) {
-    if (!dto.sessionId) throw new Error('必须传入sessionId');
-    const data = await this.aiService.chatWithHistory(dto.question, dto.sessionId);
-    return { code: 200, data };
+    // 不传 sessionId 时自动生成一个新的
+    const sessionId = dto.sessionId || randomUUID();
+    const data = await this.aiService.chatWithHistory(dto.question, sessionId);
+    return { code: 200, data, sessionId };
   }
 
   // 3. RAG知识库问答
@@ -40,5 +42,12 @@ export class AiController {
         data: isBaseMessage(chunk) ? JSON.stringify(chunk.content) : String(chunk),
       })),
     );
+  }
+
+  // 5. 生成新的会话ID
+  @Post('session/create')
+  async createSession() {
+    const sessionId = randomUUID();
+    return { code: 200, data: { sessionId } };
   }
 }

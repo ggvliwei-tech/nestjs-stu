@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { ChatOllama } from '@langchain/ollama';
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
 import { Document } from '@langchain/core/documents';
 import Redis from 'ioredis';
 import { LlmTypeEnum } from './enums/llm-type.enum';
@@ -69,13 +69,14 @@ export class AiService {
         configuration: { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
       });
     } else {
-      // Ollama本地模型
+      // Ollama本地模型（不支持embeddings，RAG功能不可用）
       this.llm = new ChatOllama({
         baseUrl: this.configService.get('OLLAMA_BASE_URL'),
         model: this.configService.get('OLLAMA_MODEL'),
         temperature: 0.6,
         numCtx: 2048, // 减少上下文长度以降低内存占用
       });
+      this.embeddings = undefined as unknown as OpenAIEmbeddings; // Ollama不支持embeddings
     }
   }
 
@@ -94,7 +95,7 @@ export class AiService {
     // 从Redis获取历史消息
     const historyKey = `chat_history:${sessionId}`;
     const historyData = await this.redisClient.get(historyKey);
-    const messages: Array<SystemMessage | HumanMessage> = [
+    const messages: Array<SystemMessage | HumanMessage | AIMessage> = [
       new SystemMessage('你是后端全栈工程师，回答简洁，提供可直接运行代码，不要冗余描述'),
     ];
 
@@ -103,6 +104,8 @@ export class AiService {
       for (const msg of history) {
         if (msg.type === 'human') {
           messages.push(new HumanMessage(msg.content));
+        } else if (msg.type === 'ai') {
+          messages.push(new AIMessage(msg.content));
         }
       }
     }
@@ -110,7 +113,7 @@ export class AiService {
     messages.push(new HumanMessage(question));
     const res = await this.llm.invoke(messages);
 
-    // 保存历史到Redis (保留最近10轮对话)
+    // 保存历史到Redis (保留最近10轮对话，即20条消息)
     const updatedHistory = [
       ...JSON.parse(historyData || '[]'),
       { type: 'human', content: question },
