@@ -23,19 +23,19 @@ export default () => ({
   // 数据库名称（必填）
   DB_NAME: getEnv('DB_NAME'),
 
-  // JWT 相关配置
-  // JWT 签名密钥（必填），用于 Token 的加密和解密
-  // JWT 双Token
-  JWT_ACCESS_SECRET: getEnv('JWT_ACCESS_SECRET'),
-  JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '30m',
-  JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET'),
-  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+  // JWT 相关配置（双 Token 机制）
+  JWT_ACCESS_SECRET: getEnv('JWT_ACCESS_SECRET'),              // Access Token 签名密钥（必填）
+  JWT_ACCESS_EXPIRES_IN: process.env.JWT_ACCESS_EXPIRES_IN || '30m',  // Access Token 过期时间，默认 30 分钟
+  JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET'),            // Refresh Token 签名密钥（必填）
+  JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Refresh Token 过期时间，默认 7 天
 
   // 阿里云 OSS 配置（选填，未配置时降级为本地存储）
-  OSS_REGION: process.env.OSS_REGION || '',
-  OSS_ACCESS_KEY_ID: process.env.OSS_ACCESS_KEY_ID || '',
-  OSS_ACCESS_KEY_SECRET: process.env.OSS_ACCESS_KEY_SECRET || '',
-  OSS_BUCKET: process.env.OSS_BUCKET || '',
-  OSS_BASE_URL: process.env.OSS_BASE_URL || '',
+  OSS_REGION: process.env.OSS_REGION || '',                       // OSS 所在区域
+  OSS_ACCESS_KEY_ID: process.env.OSS_ACCESS_KEY_ID || '',         // OSS 访问密钥 ID
+  OSS_ACCESS_KEY_SECRET: process.env.OSS_ACCESS_KEY_SECRET || '', // OSS 访问密钥 Secret
+  OSS_BUCKET: process.env.OSS_BUCKET || '',                       // OSS Bucket 名称
+  OSS_BASE_URL: process.env.OSS_BASE_URL || '',                   // OSS 基础 URL
+  OSS_CDN_DOMAIN: process.env.OSS_CDN_DOMAIN || '',               // CDN 域名前缀
+  OSS_UPLOAD_FOLDER: process.env.OSS_UPLOAD_FOLDER || 'uploads',  // OSS 上传文件夹前缀
 });
 

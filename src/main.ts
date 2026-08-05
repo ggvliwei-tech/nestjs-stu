@@ -14,8 +14,11 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 // 全局响应转换拦截器，统一成功响应格式
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+// 导入 cookie-parser 中间件，用于解析和读取 Cookie
 import cookieParser from 'cookie-parser';
+// 导入路径拼接工具
 import { join } from 'path';
+// 导入文件系统模块
 import * as fs from 'fs';
 
 
@@ -26,6 +29,7 @@ async function bootstrap() {
   // 从应用容器中获取 ConfigService 实例
   const configService = app.get(ConfigService);
 
+  // 使用 cookie-parser 中间件解析 Cookie
   app.use(cookieParser())
 
 
