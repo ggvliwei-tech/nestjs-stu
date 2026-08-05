@@ -13,6 +13,7 @@ import { UserModule } from './modules/user/user.module';
 import { AccountBookModule } from './modules/account_book/account-book.module';
 import { FileModule } from './modules/file/file.module';
 import { AiModule } from './modules/ai/ai.moduls';
+import { ChatModule } from './modules/chat/chat.module';
 
 // 根模块，负责组装所有全局依赖
 @Module({
@@ -63,6 +64,7 @@ import { AiModule } from './modules/ai/ai.moduls';
     AccountBookModule,
     FileModule,
     AiModule,
+    ChatModule
   ],
 })
 export class AppModule {}
